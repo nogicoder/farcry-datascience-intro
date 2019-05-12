@@ -110,6 +110,50 @@ def parse_frags(log_data):
 	return frags_list
 
 
-log_data = read_log_file("./logs/log02.txt")
-print(parse_frags(log_data))
+def weapon_code_converter(weapon):
+	weapon_dict = {
+		"🚙": "Vehicle",
+		"🔫": "Falcon, Shotgun, P90, MP5, M4,AG36, OICW, SniperRifle, M249, VehicleMountedAutoMG, VehicleMountedMG",
+		"💣": "HandGrenade, AG36Grenade, OICWGrenade, StickyExplosive",
+		"🚀": "Rocket, VehicleMountedRocketMG, VehicleRocket",
+		"🔪": "Machete",
+		"🚤": "Boat"
+	}
+
+	for key, value in weapon_dict.items():
+		if weapon in value:
+			return key
+
+
+def prettify_frags(frags):
+	"""Make the frags list looks prettier with the use of emojis
+	@param frags: A list of frags tuples parsed from the log data
+	"""
+	new_frags = []
+	for frag in frags:
+
+		if len(frag) > 2:
+			frag_time = frag[0].isoformat()
+			killer_name = "😛  " + frag[1]
+			victim_name = "😦  " + frag[2]
+			weapon_icon = weapon_code_converter(frag[3])
+
+			frag_line = "[{}] {} {}  {}".format(
+				frag_time, killer_name, weapon_icon, victim_name)
+		else:
+			frag_time = frag[0].isoformat()
+			killer_name = "😦  " + frag[1] + " ☠"
+
+			frag_line = "[{}] {}".format(frag_time, killer_name)
+
+		new_frags.append(frag_line)
+
+	return new_frags 
+
+
+
+
+
+log_data = read_log_file("./logs/log01.txt")
+print("\n".join(prettify_frags(parse_frags(log_data))))
 
