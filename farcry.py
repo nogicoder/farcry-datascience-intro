@@ -2,6 +2,7 @@
 from datetime import datetime
 from datetime import timedelta
 from datetime import timezone
+from csv import writer
 
 # Waypoint 1: Read the data
 def read_log_file(log_file_pathname):
@@ -202,7 +203,21 @@ def parse_game_session_start_and_end_times(log_data, ending_frag):
 				return (start_time, end_time)
 
 
+# Waypoint 9: Create frag CSV file
+def write_frag_csv_file(log_file_pathname, frags):
+	"""Create a new CSV file and write each frag to each row
+	@param log_file_pathname: The path to the CSV file
+	@param frags: The list of frag
+	"""
+	with open(log_file_pathname, "w+") as file:
+		log_writer = writer(file, delimiter=",")
+		for frag in frags:
+			if len(frag) > 2:
+				log_writer.writerow([frag[0], frag[1], frag[2], frag[3]])
+			else:
+				log_writer.writerow([frag[0], frag[1]])
 
-log_data = read_log_file("./logs/log02.txt")
+
+log_data = read_log_file("./logs/log00.txt")
 frag_list = parse_frags(log_data)
-print(parse_game_session_start_and_end_times(log_data, frag_list[-1]))
+write_frag_csv_file("./logs/log00.csv", frag_list)
