@@ -8,7 +8,9 @@ from sqlite3 import connect
 
 # Waypoint 1: Read the data
 def read_log_file(log_file_pathname):
-	"""Read the data from the log file
+	"""
+	Read the data from the log file.
+	Returning the content of the log file.
 	@param log_file_pathname: The path to the log file
 	"""
 	with open(log_file_pathname, 'r') as file:
@@ -17,7 +19,9 @@ def read_log_file(log_file_pathname):
 
 # Waypoint 2, 3: Get the log starting time and timezone
 def parse_log_start_time(log_data):
-	"""Get the start time and timezone of the session from the log data
+	"""
+	Get the start time and timezone of the session from the log data
+	Returning a datetime.datetime object of the starting log time.
 	@param log_data: The data from the log file
 	"""
 	data_list = log_data.split("\n")
@@ -36,7 +40,9 @@ def parse_log_start_time(log_data):
 
 # Waypoint 4: Get the Mode and Map of the session  
 def parse_session_mode_and_map(log_data):
-	"""Get the mode and map from the log data
+	"""
+	Get the mode and map from the log data.
+	Returning a tuple of mode and map of the session.
 	@param log_data: The data from the log file
 	"""
 	data_list = log_data.split("\n")
@@ -49,9 +55,11 @@ def parse_session_mode_and_map(log_data):
 
 # Waypoint 5, 6: Get the frags list and modify the frag time format
 def handle_frag_time(i, line, data_list, line_fragtime, prevLine_minute):
-	"""Handle the frag time separately for the hour case: If 
+	"""
+	Handle the frag time separately for the hour case: If 
 	the minute of a line is smaller than its previous line, increase
-	the hour by 1
+	the hour by 1.
+	Returning the time of a frag as a datetime.datetime object.
 	@param i: The line index
 	@param line: The line itself in string
 	@data_list: The data in list
@@ -73,7 +81,9 @@ def handle_frag_time(i, line, data_list, line_fragtime, prevLine_minute):
 
 
 def parse_frags(log_data):
-	"""Get the frags list from the log data
+	"""
+	Get the frags list from the log data.
+	Returning a list of frags.
 	@param log_data: The data from the log file
 	"""
 	frags_list = []
@@ -108,7 +118,9 @@ def parse_frags(log_data):
 
 # Waypoint 7: Make the fraglist looks prettier with emojis
 def weapon_code_converter(weapon):
-	"""A separate function to handle the emojis go with each weapon category
+	"""A separate function to handle the emojis go 
+	with each weapon category.
+	Returning an emoji that suits the weapon code.
 	@param weapon: The weapon code in the frag line
 	"""
 	weapon_dict = {
@@ -126,7 +138,9 @@ def weapon_code_converter(weapon):
 
 
 def prettify_frags(frags):
-	"""Make the frags list looks prettier with the use of emojis
+	"""
+	Make the frags list looks prettier with the use of emojis.
+	Return a new list of frags with emojis.
 	@param frags: A list of frags tuples parsed from the log data
 	"""
 	new_frags = []
@@ -154,7 +168,8 @@ def prettify_frags(frags):
 
 # Waypoint 8: Get the session start and end time from the log file
 def get_index_of_line(log_data, line_input):
-	"""Get the position of a line in the data log
+	"""Get the position of a line in the data log.
+	Returning the index of a line in the log_data.
 	@param log_data: The data from log file
 	@param line_input: A string contained in a line
 	"""
@@ -166,7 +181,8 @@ def get_index_of_line(log_data, line_input):
 			
 def parse_game_session_start_and_end_times(log_data, frags):
 	"""
-	Get the start and end time from the log data
+	Get the start and end time from the log data.
+	This function will return a tuple of start and end time.
 	@param log_data: The data from log file
 	@frags: Frag list is passed in to get the ending frag
 	"""
@@ -221,12 +237,42 @@ def write_frag_csv_file(log_file_pathname, frags):
 				log_writer.writerow([frag[0], frag[1]])
 
 
+# Waypoint 26: Insert frag data to database
+def insert_frags_to_sqlite(connection, match_id, frags):
+	"""
+	This function insert frag data to the data base and is 
+	integrated into the insert_match_to_sqlite function.
+	@param connection: A connection object
+	@param match_id: The id of the match
+	@param frags: The list of frags
+	"""
+	current_row = connection.cursor()
+	for frag in frags:
+		if len(frag) > 2:
+			current_row.execute("INSERT INTO match_frag(match_id, frag_time, killer_name, victim_name, weapon_code) VALUES (?,?,?,?,?)",
+								(match_id, frag[0], frag[1], frag[2], frag[3]))
+		else:
+			current_row.execute("INSERT INTO match_frag(match_id, frag_time, killer_name) VALUES (?,?,?)",
+                            (match_id, frag[0], frag[1]))
+
+
+# Waypoint 25: Insert match data to database
 def insert_match_to_sqlite(file_pathname, start_time, end_time, game_mode, map_name, frags):
-	database = connect(file_pathname)
-	current_row = database.cursor()
+	"""
+	Insert the match data to the database. This function return the id of the match
+	@param file_pathname: Path and name of the database
+	@param start_time: A datetime.datetime object indicates the start of the game session
+	@param end_time: A datetime.datetime object indicates the end of the game session
+	@param game_mode: The mode of the game session
+	@param map_name: The name of the map that was played
+	@param frags: The list of frag
+	"""
+	connection = connect(file_pathname)
+	current_row = connection.cursor()
 	current_row.execute("INSERT INTO match(start_time, end_time, game_mode, map_name) VALUES (?,?,?,?)", (start_time, end_time, game_mode, map_name))
-	database.commit()
-	database.close()
+	insert_frags_to_sqlite(connection, current_row.lastrowid, frags)
+	connection.commit()
+	connection.close()
 	return current_row.lastrowid
 
 
