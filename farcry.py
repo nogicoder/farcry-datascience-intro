@@ -276,7 +276,7 @@ def insert_match_to_sqlite(file_pathname, start_time, end_time, game_mode, map_n
 	return current_row.lastrowid
 
 
-log_data = read_log_file("./logs/log04.txt")
+log_data = read_log_file("./logs/log06.txt")
 frags = parse_frags(log_data)
 start_time, end_time = parse_game_session_start_and_end_times(log_data, frags)
 game_mode, map_name = parse_session_mode_and_map(log_data)
