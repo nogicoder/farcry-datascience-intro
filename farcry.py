@@ -218,6 +218,6 @@ def write_frag_csv_file(log_file_pathname, frags):
 				log_writer.writerow([frag[0], frag[1]])
 
 
-log_data = read_log_file("./logs/log00.txt")
+log_data = read_log_file("./logs/log04.txt")
 frag_list = parse_frags(log_data)
-write_frag_csv_file("./logs/log00.csv", frag_list)
+write_frag_csv_file("./logs/log04.csv", frag_list)
