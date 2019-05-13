@@ -3,6 +3,8 @@ from datetime import datetime
 from datetime import timedelta
 from datetime import timezone
 from csv import writer
+from sqlite3 import connect
+
 
 # Waypoint 1: Read the data
 def read_log_file(log_file_pathname):
@@ -162,15 +164,16 @@ def get_index_of_line(log_data, line_input):
 			return log_data.index(line)
 
 			
-def parse_game_session_start_and_end_times(log_data, ending_frag):
+def parse_game_session_start_and_end_times(log_data, frags):
 	"""
 	Get the start and end time from the log data
 	@param log_data: The data from log file
-	@ending_frag: The ending frag tuple of the session
+	@frags: Frag list is passed in to get the ending frag
 	"""
 	data_list = log_data.split("\n")
 	log_start_time = parse_log_start_time(log_data)
 	start_time = 0
+	ending_frag = frags[-1]
 	ending_frag_index = get_index_of_line(log_data, ending_frag[0].strftime("%M:%S"))
 	
 	for line in data_list:
@@ -218,6 +221,17 @@ def write_frag_csv_file(log_file_pathname, frags):
 				log_writer.writerow([frag[0], frag[1]])
 
 
+def insert_match_to_sqlite(file_pathname, start_time, end_time, game_mode, map_name, frags):
+	database = connect(file_pathname)
+	current_row = database.cursor()
+	current_row.execute("INSERT INTO match(start_time, end_time, game_mode, map_name) VALUES (?,?,?,?)", (start_time, end_time, game_mode, map_name))
+	database.commit()
+	database.close()
+	return current_row.lastrowid
+
+
 log_data = read_log_file("./logs/log04.txt")
-frag_list = parse_frags(log_data)
-write_frag_csv_file("./logs/log04.csv", frag_list)
+frags = parse_frags(log_data)
+start_time, end_time = parse_game_session_start_and_end_times(log_data, frags)
+game_mode, map_name = parse_session_mode_and_map(log_data)
+print(insert_match_to_sqlite("./farcry.db", start_time, end_time, game_mode, map_name, frags))
