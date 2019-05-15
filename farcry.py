@@ -318,7 +318,7 @@ def insert_match_to_postgresql(properties, start_time, end_time, game_mode, map_
 
 
 # Waypoint 53: Determine Serial Killers
-def find_longest_streak(player_name, frags):
+def find_winning_streak(player_name, frags):
 	"""
 	Find the longest streak a player is alive during the session.
 	Returning a list of frags of the current player.
@@ -331,10 +331,10 @@ def find_longest_streak(player_name, frags):
 		if len(frag) > 2 and frag[1] == player_name:
 			current_streak.append((frag[0], frag[2], frag[3]))
 		elif ((len(frag) == 2 and frag[1] == player_name) or
-			   len(frag)> 2 and frag[2] == player_name):
+			   len(frag) > 2 and frag[2] == player_name):
 			if len(current_streak) > len(longest_streak):
 				longest_streak = current_streak
-				current_streak = []
+			current_streak = []
 	return longest_streak
 
 
@@ -348,9 +348,46 @@ def calculate_serial_killers(frags):
 	for frag in frags:
 		if frag[1] not in killers.keys():
 			player_name = frag[1]
-			killers[player_name] = find_longest_streak(player_name, frags)
+			killers[player_name] = find_winning_streak(player_name, frags)
 							
 	return killers
+
+
+# Waypoint 54: Determine Serial Losers
+def find_losing_streak(player_name, frags):
+	"""
+	Find the longest streak a player is alive during the session.
+	Returning a list of frags of the current player.
+	@param player_name: The current player being assessed
+	@param frags: List of frags
+	"""
+	longest_streak = []
+	current_streak = []
+	for frag in frags:
+		if len(frag) > 2 and frag[2] == player_name:
+			current_streak.append((frag[0], frag[1], frag[3]))
+		elif len(frag) == 2 and frag[1] == player_name:
+			current_streak.append((frag[0], None, None))
+		elif len(frag) > 2 and frag[1] == player_name:
+			if len(current_streak) > len(longest_streak):
+				longest_streak = current_streak
+
+			current_streak = []
+
+	return longest_streak
+
+
+def calculate_serial_losers(frags):
+	losers = {}
+	for frag in frags:
+		if len(frag) > 2 and frag[2] not in losers.keys():
+			player_name = frag[2]
+			losers[player_name] = find_losing_streak(player_name, frags)
+		elif len(frag) == 2 and frag[1] not in losers.keys():
+			player_name = frag[1]
+			losers[player_name] = find_losing_streak(player_name, frags)
+
+	return losers
 
 
 def test():
