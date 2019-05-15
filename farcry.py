@@ -1,9 +1,9 @@
-#!/usr/bin/env python3
 from datetime import datetime
 from datetime import timedelta
 from datetime import timezone
 from csv import writer
 from sqlite3 import connect
+import psycopg2
 
 
 # Waypoint 1: Read the data
@@ -275,11 +275,103 @@ def insert_match_to_sqlite(file_pathname, start_time, end_time, game_mode, map_n
 	connection.close()
 	return current_row.lastrowid
 
-for i in range(9):
-	file_path = "./logs/log0{}.txt".format(i)
-	log_data = read_log_file(file_path)
-	frags = parse_frags(log_data)
-	log_start_time = parse_log_start_time(log_data)
-	start_time, end_time = parse_game_session_start_and_end_times(log_data, frags)
-	game_mode, game_map = parse_session_mode_and_map(log_data)
-	insert_match_to_sqlite("./farcry.db", start_time, end_time, game_mode, game_map, frags)
+
+# Waypoint 48: Insert Game Data to PostgreSQL Database
+def insert_match_to_postgresql(properties, start_time, end_time, game_mode, map_name, frags):
+	"""
+	Insert the data from game session to the database using psycopg. 
+	Returning the ID of the match being inserted.
+	@param properties: A tuple containing (hostname, database_name, username, password)
+	@param start_time: A datetime.datetime object indicates the game start time
+	@param end_time: A datetime.datetime object indicates the game end time
+	@param game_mode: The mode game, can be ASSULT, TDM or FFA
+	@param map_name: Name of the map
+	@param frags: A tuple contain information about the frags
+	"""
+	try:
+		connection = psycopg2.connect(host=properties[0],
+							database=properties[1],
+							user=properties[2],
+							password=properties[3])
+		cursor = connection.cursor()
+		cursor.execute("INSERT INTO match (start_time, end_time, game_mode, map_name) VALUES (%s, %s, %s, %s) RETURNING match_id",
+			(start_time, end_time, game_mode, map_name))
+		match_id = cursor.fetchone()[0]
+		for frag in frags:
+			if len(frag) > 2:
+				cursor.execute("INSERT INTO match_frags (match_id, frag_time, killer_name, victim_name, weapon_code) VALUES (%s, %s, %s, %s, %s)",
+								(match_id, frag[0], frag[1], frag[2], frag[3]))
+			else:
+				cursor.execute("INSERT INTO match_frags (match_id, frag_time, killer_name) VALUES (%s, %s, %s)",
+								(match_id, frag[0], frag[1]))
+
+	except (Exception, psycopg2.Error) as error:
+		print("Error while connecting to PostgreSQL", error)
+
+	finally:
+		if (connection):
+			connection.commit()
+			cursor.close()
+			connection.close()
+			print("Connection is closed")
+			return match_id
+
+
+# Waypoint 53: Determine Serial Killers
+def find_longest_streak(player_name, frags):
+	"""
+	Find the longest streak a player is alive during the session.
+	Returning a list of frags of the current player.
+	@param player_name: The current player being assessed
+	@param frags: List of frags
+	"""
+	longest_streak = []
+	current_streak = []
+	for frag in frags:
+		if len(frag) > 2 and frag[1] == player_name:
+			current_streak.append((frag[0], frag[2], frag[3]))
+		elif ((len(frag) == 2 and frag[1] == player_name) or
+			   len(frag)> 2 and frag[2] == player_name):
+			if len(current_streak) > len(longest_streak):
+				longest_streak = current_streak
+				current_streak = []
+	return longest_streak
+
+
+def calculate_serial_killers(frags):
+	"""
+	Main function used to find the longest streaks of all players in a session.
+	Returning a dictionary of the streaks of players.
+	@param frags: List of frags
+	"""
+	killers = {}
+	for frag in frags:
+		if frag[1] not in killers.keys():
+			player_name = frag[1]
+			killers[player_name] = find_longest_streak(player_name, frags)
+							
+	return killers
+
+
+def test():
+	for i in range(9):
+		file_path = "./logs/log0{}.txt".format("8")
+		log_data = read_log_file(file_path)
+		frags = parse_frags(log_data)
+		start_time, end_time = parse_game_session_start_and_end_times(log_data, frags)
+		game_mode, map_name = parse_session_mode_and_map(log_data)
+		# insert_match_to_sqlite("./farcry.db", start_time, end_time, game_mode, game_map, frags)
+		properties = ("localhost", "farcry", None, None)
+		# insert_match_to_postgresql(properties, start_time,
+		# 						end_time, game_mode, map_name, frags)
+		serial_killers = calculate_serial_killers(frags)
+		for player_name, kill_series in serial_killers.items():
+			print("[{}]".format(player_name))
+			print('\n'.join([', '.join(([str(e) for e in kill]))
+				for kill in kill_series]))
+
+		break
+
+test()
+
+
