@@ -275,9 +275,11 @@ def insert_match_to_sqlite(file_pathname, start_time, end_time, game_mode, map_n
 	connection.close()
 	return current_row.lastrowid
 
-
-log_data = read_log_file("./logs/log06.txt")
-frags = parse_frags(log_data)
-start_time, end_time = parse_game_session_start_and_end_times(log_data, frags)
-game_mode, map_name = parse_session_mode_and_map(log_data)
-print(insert_match_to_sqlite("./farcry.db", start_time, end_time, game_mode, map_name, frags))
+for i in range(9):
+	file_path = "./logs/log0{}.txt".format(i)
+	log_data = read_log_file(file_path)
+	frags = parse_frags(log_data)
+	log_start_time = parse_log_start_time(log_data)
+	start_time, end_time = parse_game_session_start_and_end_times(log_data, frags)
+	game_mode, game_map = parse_session_mode_and_map(log_data)
+	insert_match_to_sqlite("./farcry.db", start_time, end_time, game_mode, game_map, frags)
