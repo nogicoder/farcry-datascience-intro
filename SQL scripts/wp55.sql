@@ -1,4 +1,4 @@
-CREATE OR REPLACE FUNCTION test
+CREATE OR REPLACE FUNCTION calculate_lucky_luke_killers
 (p_min_kill_count INT DEFAULT 3, p_max_time_between_kills INT DEFAULT 10)
 RETURNS TABLE
 (
@@ -16,7 +16,7 @@ DECLARE
 BEGIN
     FOR c_line1 IN
     (SELECT DISTINCT T.match_id, T.killer_name
-    FROM match_frags T
+    FROM match_frag T
     ORDER BY T.match_id, T.killer_name)
     LOOP
         match_id := c_line1.match_id;
@@ -25,7 +25,7 @@ BEGIN
         max_count := 0;
         current_count := 0;
         FOR c_line2 IN (SELECT T.match_id, T.frag_time, T.killer_name, T.victim_name
-                        FROM match_frags T
+                        FROM match_frag T
                         WHERE (T.killer_name = c_line1.killer_name) OR (T.victim_name = c_line1.killer_name))
             LOOP
                 deltatime = EXTRACT(EPOCH FROM(c_line2.frag_time - i_fragtime));
@@ -34,9 +34,7 @@ BEGIN
                 THEN
                     current_count = current_count + 1;
                     i_fragtime = c_line2.frag_time;
-                ELSIF ((c_line2.killer_name = killer_name AND c_line2.victim_name IS NULL) OR
-                    c_line2.victim_name = killer_name OR
-                    (c_line2.killer_name = killer_name AND c_line2.victim_name IS NOT NULL AND deltatime > p_max_time_between_kills))
+                ELSIF (c_line2.killer_name = killer_name AND c_line2.victim_name IS NOT NULL AND deltatime > p_max_time_between_kills)
                 THEN 
                     IF (current_count >= p_min_kill_count AND current_count > max_count)
                     THEN 
@@ -47,9 +45,10 @@ BEGIN
 
                 END IF;
             END LOOP;
-
-        kill_count := max_count;
-        RETURN NEXT;
+        IF max_count >= p_min_kill_count
+            THEN kill_count := max_count;
+            RETURN NEXT;
+        END IF;
     END LOOP;
 END; $$ 
 LANGUAGE PLPGSQL;

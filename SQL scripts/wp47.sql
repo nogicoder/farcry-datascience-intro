@@ -11,8 +11,8 @@ CREATE TABLE match
     map_name text NOT NULL
 );
 
--- Create table "match_frags"
-CREATE TABLE match_frags
+-- Create table "match_frag"
+CREATE TABLE match_frag
 (
     match_id uuid NOT NULL,
     frag_time timestamptz(3) NOT NULL,
@@ -25,4 +25,4 @@ CREATE TABLE match_frags
 ALTER TABLE match ADD CONSTRAINT pk_match_match_id PRIMARY KEY(match_id);
 
 -- Alter table "match_frag"
-ALTER TABLE match_frags ADD CONSTRAINT fk_match_frag_match_id FOREIGN KEY(match_id) REFERENCES match(match_id) ON UPDATE CASCADE ON DELETE RESTRICT;
+ALTER TABLE match_frag ADD CONSTRAINT fk_match_frag_match_id FOREIGN KEY(match_id) REFERENCES match(match_id) ON UPDATE CASCADE ON DELETE RESTRICT;

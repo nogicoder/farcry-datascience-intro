@@ -4,7 +4,7 @@ FROM
 OVER(
 PARTITION BY match_id, victim_name
 ORDER BY COUNT(killer_name) DESC, MIN(frag_time) ASC)
-    FROM match_frags
+    FROM match_frag
     WHERE victim_name IS NOT NULL
     GROUP BY match_id, victim_name, killer_name
     ORDER BY match_id, victim_name, kill_count DESC) AS T

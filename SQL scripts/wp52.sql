@@ -20,7 +20,7 @@ FROM
 OVER
 (PARTITION BY match_id, killer_name
 ORDER BY COUNT(weapon_code) DESC)
-    FROM match_frags
+    FROM match_frag
     WHERE victim_name IS NOT NULL
     GROUP BY match_id, killer_name, weapon_code
     ORDER BY match_id, killer_name, kill_count DESC) AS T
